@@ -35,7 +35,15 @@ func Run(cmd *exec.Cmd) {
 // If the command fails, the `FailHandler` is called with a nice error.
 func GetStdout(cmd *exec.Cmd) (out []byte) {
 	out, err := cmd.Output()
-	CheckP("output", err)
+	if err != nil {
+		switch eerr := err.(type) {
+		case *exec.ExitError:
+			CheckP("output", fmt.Errorf("%s; stderr: %s", err, string(eerr.Stderr)))
+		default:
+			CheckP("output", err)
+		}
+	}
+
 	return out
 }
 

@@ -9,19 +9,21 @@ import (
 	"gotest.tools/assert/cmp"
 )
 
-func TestOutput(t *testing.T) {
+func TestGetStdout(t *testing.T) {
 	// success case
 	result := just.GetStdout(exec.Command("echo", "hello"))
 	assert.Equal(t, "hello\n", string(result))
+}
 
-	// failure case
+func TestStdoutNiceErrors(t *testing.T) {
 	var gotError error
 	just.FailHandler = func(err error) {
 		gotError = err
 	}
 
-	just.GetStdout(exec.Command("bash", "-c", "exit 3"))
+	just.GetStdout(exec.Command("bash", "-c", "echo 'the stderr contents' 1>&2; exit 3"))
 	assert.Check(t, cmp.ErrorContains(gotError, "exit status 3"))
+	assert.Check(t, cmp.ErrorContains(gotError, "the stderr contents"))
 }
 
 func TestDecodeJSONOutput(t *testing.T) {
