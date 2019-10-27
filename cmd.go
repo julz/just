@@ -27,13 +27,27 @@ func CheckP(prefix string, err error) {
 
 // Run just runs the given `exec.Cmd`.
 // If the command fails, the `FailHandler` is called with a nice error.
-func Run(cmd *exec.Cmd) {
+func Run(cmd *exec.Cmd, options ...CmdOption) {
+	for _, option := range options {
+		option(cmd)
+	}
+
 	Check(cmd.Run())
+}
+
+// RunSh just runs the given command in a shell.
+// If the command fails, the `FailHandler` is called with a nice error.
+func RunSh(cmd string, options ...CmdOption) {
+	Run(Sh(cmd), options...)
 }
 
 // GetStdout runs the given `exec.Cmd` and returns the resulting stdout.
 // If the command fails, the `FailHandler` is called with a nice error.
-func GetStdout(cmd *exec.Cmd) (out []byte) {
+func GetStdout(cmd *exec.Cmd, options ...CmdOption) (out []byte) {
+	for _, option := range options {
+		option(cmd)
+	}
+
 	out, err := cmd.Output()
 	if err != nil {
 		switch eerr := err.(type) {
@@ -53,9 +67,30 @@ func DecodeJSON(r io.Reader, result interface{}) {
 	CheckP("decode json", json.NewDecoder(r).Decode(result))
 }
 
-// DecodeOutput runs the given `exec.Cmd` and decodes the stdout as json into `result`.
+// DecodeJSONOutput runs the given `exec.Cmd` and decodes the stdout as json into `result`.
 // If either running the command or decoding the json errors, the FailHandler is called
 // with a nicely wrapped error.
 func DecodeJSONOutput(cmd *exec.Cmd, result interface{}) {
 	DecodeJSON(bytes.NewReader(GetStdout(cmd)), result)
+}
+
+// DecodeOutput runs the given `cmd` in a shell and decodes the stdout as json
+// into `result`.  If either running the command or decoding the json errors,
+// the FailHandler is called with a nicely wrapped error.
+func DecodeJSONOutputSh(cmd string, result interface{}) {
+	DecodeJSON(bytes.NewReader(GetStdout(Sh(cmd))), result)
+}
+
+// Sh returns an *exec.Cmd that runs the given `cmd` argument in a shell
+func Sh(cmd string) *exec.Cmd {
+	return exec.Command("sh", "-c", cmd)
+}
+
+type CmdOption func(*exec.Cmd)
+
+// Out sets the Stdout of the command the the given writer
+func Out(w io.Writer) func(*exec.Cmd) {
+	return func(c *exec.Cmd) {
+		c.Stdout = w
+	}
 }
