@@ -1,6 +1,7 @@
 package just_test
 
 import (
+	"bytes"
 	"os/exec"
 	"testing"
 
@@ -10,12 +11,18 @@ import (
 )
 
 func TestGetStdout(t *testing.T) {
-	// success case
 	result := just.GetStdout(exec.Command("echo", "hello"))
 	assert.Equal(t, "hello\n", string(result))
 }
 
-func TestStdoutNiceErrors(t *testing.T) {
+func TestGetStdoutWithOptions(t *testing.T) {
+	var b bytes.Buffer
+	result := just.GetStdout(exec.Command("echo", "hello"), just.Out(&b))
+	assert.Equal(t, "hello\n", string(result))
+	assert.Equal(t, "hello\n", string(b.Bytes()))
+}
+
+func TestGetStdoutNiceErrors(t *testing.T) {
 	var gotError error
 	just.FailHandler = func(err error) {
 		gotError = err
